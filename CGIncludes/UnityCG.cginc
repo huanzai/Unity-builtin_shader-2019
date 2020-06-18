@@ -580,6 +580,7 @@ inline half3 DecodeRealtimeLightmap( fixed4 color )
 
 inline half3 DecodeDirectionalLightmap (half3 color, fixed4 dirTex, half3 normalWorld)
 {
+    // 这里提到了 specular lightmaps ，实际上效果不好，已经在 5.6 被移除了
     // In directional (non-specular) mode Enlighten bakes dominant light direction
     // in a way, that using it for half Lambert and then dividing by a "rebalancing coefficient"
     // gives a result close to plain diffuse response lightmaps, but normalmapped.
@@ -587,6 +588,11 @@ inline half3 DecodeDirectionalLightmap (half3 color, fixed4 dirTex, half3 normal
     // Note that dir is not unit length on purpose. Its length is "directionality", like
     // for the directional specular lightmaps.
 
+    // Lambert 漫反射：漫反射光强仅与入射光的方向和反射点处表面法线夹角的余弦成正比。其范围是 0~1
+    // Half Lambert 漫反射：将 Lambert 的范围映射到 0.5~1
+    // Half Lambert 漫反射的结果是照亮阴影区域比实际要亮
+    // 参考: https://catlikecoding.com/unity/tutorials/rendering/part-16/
+    // 参考: https://www.cnblogs.com/jiahuafu/p/6136737.html
     half halfLambert = dot(normalWorld, dirTex.xyz - 0.5) + 0.5;
 
     return color * halfLambert / max(1e-4h, dirTex.w);

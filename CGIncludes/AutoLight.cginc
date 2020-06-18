@@ -164,6 +164,7 @@ half UnityComputeForwardShadows(float2 lightmapUV, float3 worldPos, float4 scree
 #endif
 
 #ifdef POINT
+# _LightTexture0 是光源衰减纹理。以距离的平方.rr 作为采样坐标。
 sampler2D_float _LightTexture0;
 unityShadowCoord4x4 unity_WorldToLight;
 #   define UNITY_LIGHT_ATTENUATION(destName, input, worldPos) \

@@ -321,7 +321,7 @@ inline UnityGI FragmentGI (FragmentCommonData s, half occlusion, half4 i_ambient
 
     if(reflections)
     {
-        // g.roughness = 1 - s.smoothness 粗糙度 注意！！！: 这里不是粗糙度，而是 perceptualRoughness = roughness * roughness
+        // g.roughness = 1 - s.smoothness 粗糙度 注意！！！: 这里 g.roughness 不是粗糙度，而是 perceptualRoughness = roughness * roughness
         // g.reflUVW = reflect(s.eyeVec, normalWorld) 视线的反射
         Unity_GlossyEnvironmentData g = UnityGlossyEnvironmentSetup(s.smoothness, -s.eyeVec, s.normalWorld, s.specColor);
         // Replace the reflUVW if it has been compute in Vertex shader. Note: the compiler will optimize the calcul in UnityGlossyEnvironmentSetup itself
@@ -331,7 +331,7 @@ inline UnityGI FragmentGI (FragmentCommonData s, half occlusion, half4 i_ambient
 
         // 结果:
         //      1. 主光源颜色
-        //      2. 间接光-漫反射光 (球谐+光照贴图+动态光照贴图) * occlusion ？ 为什么会有光照贴图？
+        //      2. 间接光-漫反射光 (球谐、光照贴图、动态光照贴图) * occlusion 
         //      3. 间接光-高光 (天空盒或反射探针根据粗糙度插值) * occlusion
         return UnityGlobalIllumination (d, occlusion, s.normalWorld, g);
     }
@@ -520,7 +520,7 @@ half4 fragForwardBaseInternal (VertexOutputForwardBase i)
 
     // 主光源：光颜色+光方向
     UnityLight mainLight = MainLight ();
-    // atten 衰减系数，专门找时间处理 TODO ...
+    // atten 衰减系数，采样 screen shadow map (real-time) 得到的值
     UNITY_LIGHT_ATTENUATION(atten, i, s.posWorld);
 
     // 阴影度 ao (occ~1.0)

@@ -242,6 +242,9 @@ half3 ShadeSHPerPixel (half3 normal, half3 ambient, float3 worldPos)
 inline float3 BoxProjectedCubemapDirection (float3 worldRefl, float3 worldPos, float4 cubemapCenter, float4 boxMin, float4 boxMax)
 {
     // Do we have a valid reflection probe?
+    // cubemapCenter.xyz: Reflection Probe 中心世界坐标
+    // cubemapCenter.z: 当前 Reflection Probe 是否开启了 Box Projection
+    // 如果开启了 Box Projection，求实际的 reflection 
     UNITY_BRANCH
     if (cubemapCenter.w > 0.0)
     {

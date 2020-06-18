@@ -114,28 +114,35 @@ inline UnityGI UnityGI_Base(UnityGIInput data, half occlusion, half3 normalWorld
     o_gi.light = data.light;
     o_gi.light.color *= data.atten; // 光照颜色 * atten 衰减系数
 
-    // 间接光的漫反射部分使用球谐
+    // 间接光的漫反射部分:球谐
     #if UNITY_SHOULD_SAMPLE_SH
-        // data.ambient 来自光照贴图，如果开启了 LIGHTMAP_ON 或 DYNAMICLIGHTMAP_ON，则 data.ambient 为 0
+        // data.ambient 来自球谐+顶点光(最多4盏)，如果开启了 LIGHTMAP_ON 或 DYNAMICLIGHTMAP_ON，则 data.ambient 为 0
         o_gi.indirect.diffuse = ShadeSHPerPixel(normalWorld, data.ambient, data.worldPos);
     #endif
 
-    // 间接光的漫反射部分+光照贴图
+    // 间接光的漫反射部分:光照贴图
     #if defined(LIGHTMAP_ON)
         // Baked lightmaps
         half4 bakedColorTex = UNITY_SAMPLE_TEX2D(unity_Lightmap, data.lightmapUV.xy);
         half3 bakedColor = DecodeLightmap(bakedColorTex);
 
         #ifdef DIRLIGHTMAP_COMBINED
+            // unity_LightmapInd 方向贴图
+            // 当存在方向贴图时，diffuse = halfLambert * bakedColor
+            // 当不存在方向贴图时，diffuse = bakedColor 
             fixed4 bakedDirTex = UNITY_SAMPLE_TEX2D_SAMPLER (unity_LightmapInd, unity_Lightmap, data.lightmapUV.xy);
             o_gi.indirect.diffuse += DecodeDirectionalLightmap (bakedColor, bakedDirTex, normalWorld);
 
+            // SHADOW_SCREEN: 方向光
+            // LIGHTMAP_ON && LIGHTMAP_SHADOW_MIXING: Subtractive mode
             #if defined(LIGHTMAP_SHADOW_MIXING) && !defined(SHADOWS_SHADOWMASK) && defined(SHADOWS_SCREEN)
                 ResetUnityLight(o_gi.light);
                 o_gi.indirect.diffuse = SubtractMainLightWithRealtimeAttenuationFromLightmap (o_gi.indirect.diffuse, data.atten, bakedColorTex, normalWorld);
             #endif
 
         #else // not directional lightmap
+            // 当存在方向贴图时，diffuse = halfLambert * bakedColor
+            // 当不存在方向贴图时，diffuse = bakedColor 
             o_gi.indirect.diffuse += bakedColor;
 
             #if defined(LIGHTMAP_SHADOW_MIXING) && !defined(SHADOWS_SHADOWMASK) && defined(SHADOWS_SCREEN)
@@ -223,8 +230,12 @@ inline UnityGI UnityGlobalIllumination (UnityGIInput data, half occlusion, half3
 inline UnityGI UnityGlobalIllumination (UnityGIInput data, half occlusion, half3 normalWorld, Unity_GlossyEnvironmentData glossIn)
 {
     // 直接光主光源 + 间接光漫反射部分
+    // 直接光主光源: 主光源主要受影响的是其衰减度，而对衰减度有作用的又分为 2 部分，realtime 和 baked。
+    //      realtime: 距离求出的衰减度 * 实时阴影图的阴影 + 
+    //      baked: 烘焙阴影(根据距离算衰减)
+    // 间接光漫反射部分: 光照贴图+动态光照贴图
     UnityGI o_gi = UnityGI_Base(data, occlusion, normalWorld);
-    // 间接光高光部分
+    // 间接光高光部分: 反射探灯的采样
     o_gi.indirect.specular = UnityGI_IndirectSpecular(data, occlusion, glossIn);
     return o_gi;
 }
